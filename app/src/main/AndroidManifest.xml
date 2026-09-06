@@ -97,6 +97,18 @@
                 <action android:name="com.voltage.gamespace.action.GAME_STOP" />
             </intent-filter>
         </receiver>
+        <service
+            android:name="com.voltage.gamespace.gamebar.GameCallService"
+            android:exported="true"
+            android:permission="android.permission.BIND_INCALL_SERVICE">
+            <meta-data
+                android:name="android.telecom.IN_CALL_SERVICE_UI"
+                android:value="false" />
+            <intent-filter>
+                <action android:name="android.telecom.InCallService" />
+            </intent-filter>
+        </service>
     </application>
 
+    <uses-permission android:name="android.permission.CONTROL_INCALL_EXPERIENCE" />
 </manifest>

@@ -24,15 +24,13 @@ package com.voltage.gamespace.gamebar
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.graphics.PixelFormat
-import android.media.AudioDeviceInfo
-import android.media.AudioManager
-import android.media.AudioSystem
 import android.net.Uri
 import android.provider.ContactsContract
 import android.telecom.TelecomManager
 import android.telephony.PhoneStateListener
 import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
+import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -73,14 +71,12 @@ class CallListener @Inject constructor(
     @ApplicationContext private val context: Context,
     private val appSettings: AppSettings
 ) {
-    private val audioManager = context.getSystemService(AudioManager::class.java)!!
     private val telephonyManager = context.getSystemService(TelephonyManager::class.java)!!
     private val telecomManager = context.getSystemService(TelecomManager::class.java)!!
     private val windowManager = context.getSystemService(WindowManager::class.java)!!
 
     private val callsMode = appSettings.callsMode
     private val callOverlayEnabled = appSettings.callOverlayEnabled
-    private var previousAudioMode = audioManager.mode
 
     private var ringerOverlay: ComposeView? = null
     private var isOverlayShowing = false
@@ -111,6 +107,7 @@ class CallListener @Inject constructor(
     }
 
     fun destroy() {
+        GameCallService.cancelPendingSpeaker()
         telephonyManager.unregisterTelephonyCallback(telephonyCallback)
         dismissRingerOverlay(immediate = true)
         telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_NONE)
@@ -121,7 +118,7 @@ class CallListener @Inject constructor(
 
         when (callsMode) {
             1 -> {
-                telecomManager.acceptRingingCall()
+                answerIncomingCall(preferSpeaker = true)
                 Toast.makeText(
                     context,
                     context.getString(R.string.in_game_calls_received_number, ""),
@@ -141,34 +138,20 @@ class CallListener @Inject constructor(
 
     private fun handleOffhookState() {
         dismissRingerOverlay()
-
-        if (callsMode == 0 || callsMode == 2) return
-
-        if (isHeadsetPluggedIn()) {
-            audioManager.isSpeakerphoneOn = false
-            AudioSystem.setForceUse(AudioSystem.FOR_COMMUNICATION, AudioSystem.FORCE_NONE)
-        } else {
-            audioManager.isSpeakerphoneOn = true
-            AudioSystem.setForceUse(AudioSystem.FOR_COMMUNICATION, AudioSystem.FORCE_SPEAKER)
-        }
-        audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
     }
 
     private fun handleIdleState() {
         dismissRingerOverlay()
-
-        if (callsMode == 0 || callsMode == 2) return
-
-        audioManager.mode = previousAudioMode
-        AudioSystem.setForceUse(AudioSystem.FOR_COMMUNICATION, AudioSystem.FORCE_NONE)
     }
 
-    private fun isHeadsetPluggedIn(): Boolean {
-        val devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)!!
-        return devices.any {
-            it.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
-                    it.type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
-                    it.type == AudioDeviceInfo.TYPE_USB_HEADSET
+    private fun answerIncomingCall(preferSpeaker: Boolean) {
+        try {
+            if (!GameCallService.answerIncomingCall(preferSpeaker)) {
+                telecomManager.acceptRingingCall()
+            }
+            dismissRingerOverlay()
+        } catch (e: RuntimeException) {
+            Log.w("GameSpaceCalls", "Unable to answer incoming call", e)
         }
     }
 
@@ -209,9 +192,9 @@ class CallListener @Inject constructor(
                         MaterialTheme(colorScheme = scheme) {
                             CallOverlay(
                                 onAccept = {
-                                    telecomManager.acceptRingingCall()
-                                    handleOffhookState()
-                                    dismissRingerOverlay()
+                                    answerIncomingCall(
+                                        preferSpeaker = appSettings.callOverlaySpeakerphone
+                                    )
                                 },
                                 onReject = {
                                     telecomManager.endCall()

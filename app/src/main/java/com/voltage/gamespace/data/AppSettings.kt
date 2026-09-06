@@ -82,6 +82,10 @@ class AppSettings @Inject constructor(private val context: Context) {
         get() = db.getBoolean(KEY_CALL_OVERLAY_ENABLED, true)
         set(point) = db.edit().putBoolean(KEY_CALL_OVERLAY_ENABLED, point).apply()
 
+    var callOverlaySpeakerphone
+        get() = db.getBoolean(KEY_CALL_OVERLAY_SPEAKERPHONE, false)
+        set(value) = db.edit().putBoolean(KEY_CALL_OVERLAY_SPEAKERPHONE, value).apply()
+
     var autoDndEnabled
         get() = db.getBoolean(KEY_AUTO_DND_ENABLED, false)
         set(value) = db.edit().putBoolean(KEY_AUTO_DND_ENABLED, value).apply()
@@ -97,6 +101,7 @@ class AppSettings @Inject constructor(private val context: Context) {
         const val KEY_ADB_DISABLE = "gamespace_adb_disabled"
         const val KEY_LOCK_GESTURE = "gamespace_lock_gesture"
         const val KEY_CALL_OVERLAY_ENABLED = "call_overlay_enabled"
+        const val KEY_CALL_OVERLAY_SPEAKERPHONE = "call_overlay_speakerphone"
         const val KEY_AUTO_DND_ENABLED = "gamespace_auto_dnd_enabled"
     }
 }

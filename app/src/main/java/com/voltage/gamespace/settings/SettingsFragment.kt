@@ -31,6 +31,7 @@ import com.android.settingslib.widget.SettingsBasePreferenceFragment
 import dagger.hilt.android.AndroidEntryPoint
 
 import com.voltage.gamespace.R
+import com.voltage.gamespace.data.AppSettings
 import com.voltage.gamespace.data.GameOptimizationManager
 import com.voltage.gamespace.preferences.AppListPreferences
 import com.voltage.gamespace.preferences.appselector.AppSelectorActivity
@@ -43,6 +44,9 @@ class SettingsFragment : Hilt_SettingsFragment(), Preference.OnPreferenceChangeL
 
     @Inject
     lateinit var gameOptimization: GameOptimizationManager
+
+    @Inject
+    lateinit var appSettings: AppSettings
 
     private var apps: AppListPreferences? = null
 
@@ -62,6 +66,29 @@ class SettingsFragment : Hilt_SettingsFragment(), Preference.OnPreferenceChangeL
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.root_preferences, rootKey)
+        addOverlaySpeakerPreference()
+    }
+
+    private fun addOverlaySpeakerPreference() {
+        val overlay = findPreference<Preference>(AppSettings.KEY_CALL_OVERLAY_ENABLED)
+        val speaker = SwitchPreferenceCompat(requireContext()).apply {
+            key = AppSettings.KEY_CALL_OVERLAY_SPEAKERPHONE
+            setTitle(R.string.call_overlay_speakerphone_title)
+            setSummary(R.string.call_overlay_speakerphone_summary)
+            isPersistent = false
+            isChecked = appSettings.callOverlaySpeakerphone
+            order = overlay?.order?.let {
+                if (it < Int.MAX_VALUE) it + 1 else it
+            } ?: Int.MAX_VALUE
+            setOnPreferenceChangeListener { _, value ->
+                appSettings.callOverlaySpeakerphone = value as Boolean
+                true
+            }
+        }
+        (overlay?.parent ?: preferenceScreen).addPreference(speaker)
+        if (overlay != null) {
+            speaker.dependency = overlay.key
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

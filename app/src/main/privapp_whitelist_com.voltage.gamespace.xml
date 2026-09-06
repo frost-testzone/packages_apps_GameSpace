@@ -25,5 +25,6 @@
         <permission name="android.permission.FOREGROUND_SERVICE" />
         <permission name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
         <permission name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+        <permission name="android.permission.CONTROL_INCALL_EXPERIENCE" />
     </privapp-permissions>
 </permissions>
