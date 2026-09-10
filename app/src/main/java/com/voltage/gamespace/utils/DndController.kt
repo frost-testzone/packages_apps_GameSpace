@@ -61,7 +61,7 @@ class DndController @Inject constructor(
         if (originalInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_ALL) {
             try {
                 notificationManager.setInterruptionFilter(
-                    NotificationManager.INTERRUPTION_FILTER_PRIORITY
+                    NotificationManager.INTERRUPTION_FILTER_ALARMS
                 )
                 isDndApplied = true
                 Log.d(TAG, "DND enabled for game session")
