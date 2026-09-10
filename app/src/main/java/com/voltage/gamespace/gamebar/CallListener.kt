@@ -329,34 +329,40 @@ fun CallOverlay(
     var acceptAlpha by remember { mutableStateOf(1f) }
     var photoAlpha by remember { mutableStateOf(0f) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(callerPhoto) {
         isVisible = true
-        while (isVisible) {
-            showPhoto = false
+
+        if (callerPhoto != null) {
+            while (isVisible) {
+                showPhoto = false
+                acceptAlpha = 1f
+                photoAlpha = 0f
+                delay(1500)
+
+                animate(
+                    initialValue = 1f,
+                    targetValue = 0f,
+                    animationSpec = tween(500)
+                ) { value, _ -> acceptAlpha = value }
+                showPhoto = true
+
+                animate(
+                    initialValue = 0f,
+                    targetValue = 1f,
+                    animationSpec = tween(500)
+                ) { value, _ -> photoAlpha = value }
+
+                delay(1500)
+
+                animate(
+                    initialValue = 1f,
+                    targetValue = 0f,
+                    animationSpec = tween(500)
+                ) { value, _ -> photoAlpha = value }
+            }
+        } else {
             acceptAlpha = 1f
             photoAlpha = 0f
-            delay(1500)
-
-            animate(
-                initialValue = 1f,
-                targetValue = 0f,
-                animationSpec = tween(500)
-            ) { value, _ -> acceptAlpha = value }
-            showPhoto = true
-
-            animate(
-                initialValue = 0f,
-                targetValue = 1f,
-                animationSpec = tween(500)
-            ) { value, _ -> photoAlpha = value }
-
-            delay(1500)
-
-            animate(
-                initialValue = 1f,
-                targetValue = 0f,
-                animationSpec = tween(500)
-            ) { value, _ -> photoAlpha = value }
         }
     }
 
