@@ -26,6 +26,7 @@ import android.graphics.BitmapFactory
 import android.graphics.PixelFormat
 import android.net.Uri
 import android.provider.ContactsContract
+import android.provider.Settings
 import android.telecom.TelecomManager
 import android.telephony.PhoneStateListener
 import android.telephony.TelephonyCallback
@@ -74,6 +75,9 @@ class CallListener @Inject constructor(
     private val telephonyManager = context.getSystemService(TelephonyManager::class.java)!!
     private val telecomManager = context.getSystemService(TelecomManager::class.java)!!
     private val windowManager = context.getSystemService(WindowManager::class.java)!!
+
+    private var preCallHeadsUpState: Int? = null
+    private var isTempHeadsUpDisabled = false
 
     private val callsMode = appSettings.callsMode
     private val callOverlayEnabled = appSettings.callOverlayEnabled
@@ -158,6 +162,24 @@ class CallListener @Inject constructor(
     private fun showRingerOverlay(incomingNumber: String) {
         if (isOverlayShowing) return
 
+        try {
+            preCallHeadsUpState = Settings.Global.getInt(
+                context.contentResolver,
+                Settings.Global.HEADS_UP_NOTIFICATIONS_ENABLED,
+                1
+            )
+            if (preCallHeadsUpState == 1) {
+                Settings.Global.putInt(
+                    context.contentResolver,
+                    Settings.Global.HEADS_UP_NOTIFICATIONS_ENABLED,
+                    0
+                )
+                isTempHeadsUpDisabled = true
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
         val sidebarX = appSettings.x
 
         val layoutParams = WindowManager.LayoutParams(
@@ -221,6 +243,22 @@ class CallListener @Inject constructor(
     }
 
     private fun dismissRingerOverlay(immediate: Boolean = false) {
+        if (isTempHeadsUpDisabled) {
+            preCallHeadsUpState?.let { state ->
+                try {
+                    Settings.Global.putInt(
+                        context.contentResolver,
+                        Settings.Global.HEADS_UP_NOTIFICATIONS_ENABLED,
+                        state
+                    )
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+            isTempHeadsUpDisabled = false
+            preCallHeadsUpState = null
+        }
+
         ringerOverlay?.let { overlay ->
             try {
                 if (overlay.isAttachedToWindow) {
