@@ -120,6 +120,8 @@
     <!-- Call overlay -->
     <string name="call_overlay_enabled_title">Call overlay</string>
     <string name="call_overlay_enabled_summary">Show minimal call overlay to answer/reject calls</string>
+    <string name="show_caller_details_title">Show caller details</string>
+    <string name="show_caller_details_summary">Display the caller name or number in the overlay</string>
 
     <!-- Game Optimization -->
      <string name="game_optimization_title">Launch Optimization</string>

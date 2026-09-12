@@ -55,6 +55,8 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.layout.*
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
@@ -200,7 +202,7 @@ class CallListener @Inject constructor(
             y = appSettings.y - 71.extDp
         }
 
-        val callerPhoto = loadContactPhoto(context, incomingNumber)
+        val showDetails = appSettings.showCallerDetails
 
         ringerOverlay = ComposeView(context).apply {
             repeatWhenAttached {
@@ -211,6 +213,20 @@ class CallListener @Inject constructor(
                     setContent {
                         val isDark = isSystemInDarkTheme()
                         val scheme = if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+
+                        var callerPhoto by remember { mutableStateOf<ImageBitmap?>(null) }
+                        var callerName by remember { mutableStateOf<String?>(null) }
+
+                        LaunchedEffect(incomingNumber) {
+                            val (photo, name) = withContext(Dispatchers.IO) {
+                                loadContactPhoto(context, incomingNumber) to
+                                    getCallerName(context, incomingNumber)
+                            }
+
+                            callerPhoto = photo
+                            callerName = name ?: incomingNumber
+                        }
+
                         MaterialTheme(colorScheme = scheme) {
                             CallOverlay(
                                 onAccept = {
@@ -225,7 +241,9 @@ class CallListener @Inject constructor(
                                 onDismiss = { dismissRingerOverlay() },
                                 alignRight = sidebarX < 0,
                                 onDismissAnimation = { dismissRingerOverlay() },
-                                callerPhoto = callerPhoto
+                                callerPhoto = callerPhoto,
+                                callerName = callerName,
+                                showDetails = showDetails
                             )
                         }
                     }
@@ -298,6 +316,21 @@ class CallListener @Inject constructor(
         }
         return null
     }
+
+    private fun getCallerName(context: Context, phoneNumber: String): String? {
+        val resolver = context.contentResolver
+        val uri = Uri.withAppendedPath(
+            ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
+            Uri.encode(phoneNumber)
+        )
+
+        resolver.query(uri, arrayOf(ContactsContract.PhoneLookup.DISPLAY_NAME_PRIMARY), null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                return cursor.getString(0)?.takeIf { it.isNotBlank() }
+            }
+        }
+        return null
+    }
 }
 
 @Composable
@@ -307,7 +340,9 @@ fun CallOverlay(
     onDismiss: () -> Unit,
     alignRight: Boolean,
     onDismissAnimation: suspend () -> Unit,
-    callerPhoto: ImageBitmap? = null
+    callerPhoto: ImageBitmap? = null,
+    callerName: String? = null,
+    showDetails: Boolean = false
 ) {
     var isVisible by remember { mutableStateOf(false) }
     var isDismissing by remember { mutableStateOf(false) }
@@ -353,7 +388,7 @@ fun CallOverlay(
     LaunchedEffect(callerPhoto) {
         isVisible = true
 
-        if (callerPhoto != null) {
+        if (callerPhoto != null && !showDetails) {
             while (isVisible) {
                 showPhoto = false
                 acceptAlpha = 1f
@@ -414,6 +449,25 @@ fun CallOverlay(
                 .padding(12.dp)
                 .shadow(8.dp, CircleShape)
         ) {
+            if (showDetails && callerName != null) {
+                Text(
+                    text = callerName,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    softWrap = false,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(top = 6.dp, bottom = 4.dp, start = 4.dp, end = 4.dp)
+                        .widthIn(max = 60.dp)
+                        .basicMarquee(
+                            iterations = Int.MAX_VALUE,
+                            initialDelayMillis = 0,
+                            velocity = 30.dp
+                        )
+                )
+            }
+
             IconButton(
                 onClick = {
                     btnPressed = true
@@ -459,7 +513,7 @@ fun CallOverlay(
                     )
                 }
 
-                callerPhoto?.let { photo ->
+                if (callerPhoto != null && !showDetails) {
                     IconButton(
                         onClick = {
                             btnPressed = true
@@ -473,7 +527,7 @@ fun CallOverlay(
                             .clip(CircleShape)
                     ) {
                         Image(
-                            bitmap = photo,
+                            bitmap = callerPhoto,
                             contentDescription = "Caller photo",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier

@@ -66,6 +66,13 @@
             android:title="@string/call_overlay_enabled_title" />
 
         <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:dependency="call_overlay_enabled"
+            android:key="gamespace_show_caller_details"
+            android:summary="@string/show_caller_details_summary"
+            android:title="@string/show_caller_details_title" />
+
+        <SwitchPreferenceCompat
             android:defaultValue="true"
             android:key="gamespace_danmaku_notification_mode"
             android:summary="@string/danmaku_notification_mode_summary"
